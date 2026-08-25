@@ -1,0 +1,58 @@
+record(stringin, "$(P)$(R)set_time") {
+    field(DESC, "Set the time we start predicting")
+    field(VAL, "2026-05-20 00:00:00")
+}
+
+record(waveform, "$(P)$(R)temperature") {
+    field(DESC, "Y axis, prediction")
+    field(NELM, "48")
+    field(FTVL, "DOUBLE")
+}
+
+record(waveform, "$(P)$(R)temperature_ref") {
+    field(DESC, "Y axis, reference temperature")
+    field(NELM, "48")
+    field(FTVL, "DOUBLE")
+}
+
+record(waveform, "$(P)$(R)time") {
+    field(DESC, "X axis")
+    field(NELM, "48")
+    field(FTVL, "DOUBLE")
+}
+
+record(ai, "$(P)$(R)hour_24") {
+    field(DESC, "The 24 hour prediction")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "$(P)$(R)hour_48") {
+    field(DESC, "The 48 hour prediction")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "$(P)$(R)hour_24_q_10") {
+    field(DESC, "The 24 hour prediction 10% quantile")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "$(P)$(R)hour_24_q_90") {
+    field(DESC, "The 24 hour prediction 90% quantile")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "$(P)$(R)hour_48_q_10") {
+    field(DESC, "The 48 hour prediction 10% quantile")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "$(P)$(R)hour_48_q_90") {
+    field(DESC, "The 24 hour prediction 10% quantile")
+    field(SCAN, ".1 second")
+}
+
+record(bi, "$(P)$(R)bad") {
+    field(DESC, "alarm")
+    field(PINI, "YES")
+    field(VAL,  "0")
+}
