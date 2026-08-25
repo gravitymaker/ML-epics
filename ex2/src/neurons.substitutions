@@ -30,9 +30,9 @@ file softmax.template {
 
 file weights.template {
 	pattern { name1, name2, weight }
-		{ "01", "11", "-50" }
+		{ "01", "11", "-5" }
 		{ "01", "12", "1" }
-		{ "01", "13", "50" }
+		{ "01", "13", "5" }
 		
 		
 		{ "11", "11", "0" }
