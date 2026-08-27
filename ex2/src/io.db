@@ -43,7 +43,7 @@ record(calcout, "$(P)$(R)max-class") {
 
 record(mbbi, "$(P)$(R)class-out") {
 	field(INP, "$(P)$(R)max-class")
-	field(ZRST, "FALLING")
+	field(ZRST, "RISING")
 	field(ONST, "STABLE")
-	field(TWST, "RISING")
+	field(TWST, "FALLING")
 }

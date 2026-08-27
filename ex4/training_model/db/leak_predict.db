@@ -1,0 +1,142 @@
+# ============================================================================
+#  leak_predict.db — cooling-skid leak-LOCATION inference IOC database
+#
+#  An aSub record samples the four skid sensor PVs, runs the mlpack DecisionTree
+#  in the leakPredict subroutine, and publishes:
+#     $(P)LeakML:Status        predicted leak location     (mbbi, 10 states)
+#     $(P)LeakML:Confidence    model confidence            (0..1)
+#     $(P)LeakML:ClassIdx      raw class index             (0..9)
+#
+#  STUDENT BONUS EXERCISE: the leak-DETECTION readbacks — $(P)LeakML:LeakDetected
+#  (bi), $(P)LeakML:LevelRate (ai) and $(P)LeakML:CumDrop5min (ai) — are NOT
+#  defined here. They surface the physics-gate outputs (VALC/VALD/VALE), which the
+#  aSub only produces once the gate itself is built. See docs/EXERCISE_leak_gate.md;
+#  reference: solutions/leak_predict.db.
+#
+#  HONESTY NOTE: exact leak LOCATION is not physically observable from these
+#  lumped skid sensors (all branches merge off-skid; see train_model.py's
+#  leave-one-event-out validation). The Status location is a best-guess (advisory,
+#  alarmed MAJOR); the trustworthy leak/no-leak alarm is the LeakDetected bi (bonus).
+#
+#  Macro:
+#     P  PV prefix, default "CWM-CWS02:WtrC-"
+#
+#  The aSub reads four switchable routing records ($(P)<tag>:ModelIn, defined in
+#  leak_sensors_sim.db). Those follow the $(P)Sim:Enable bo: Simulated -> the
+#  replayed :SimRaw sources (bench), Live PVs -> the real skid PVs on the gateway.
+#
+#  Usage:  dbLoadRecords("leak_predict.db", "P=CWM-CWS02:WtrC-")
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Inference engine: 4 sensor inputs (A..D) -> 3 outputs (VALA..VALC).
+#  SCAN = 5 second. The d_correctedLev_dt slope is fit on real timestamps, so it
+#  stays mm/s regardless of cadence; the offline data was ~30 s-spaced.
+#  (PT-101 was dropped as a model input — it carried no leak signal.)
+# ----------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------
+#  Fan the model result out to the readbacks. Each latches the current VAL*
+#  field (NPP) when the fanout processes it, so the readbacks are defined
+#  immediately and stay in lockstep with the model - including the steady
+#  no-leak state, where the class index never changes and a bare CA monitor
+#  would never fire.
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+#  Operator-facing readbacks (monitor the aSub outputs via CA).
+# ----------------------------------------------------------------------------
+
+
+# STUDENT BONUS EXERCISE: the trustworthy leak/no-leak output — a bi on
+# $(P)LeakML:Predict.VALC (physics gate), alarmed MAJOR on the LEAK state — is
+# built as part of the detection exercise. See docs/EXERCISE_leak_gate.md;
+# reference: solutions/leak_predict.db.
+
+# Best-guess leak location (class index -> <section> <component> <side>).
+# NOTE: location is NOT physically resolvable from these sensors — treat as
+# advisory only (alarmed MAJOR). The bi above carries the trustworthy alarm.
+
+
+# ----------------------------------------------------------------------------
+#  Detection diagnostics — STUDENT BONUS EXERCISE. The level-rate (Predict.VALD,
+#  mm/s) and cumulative-drop (Predict.VALE, mm) readbacks that monitor the physics
+#  gate are built as part of the detection exercise (add ai records here).
+#  See docs/EXERCISE_leak_gate.md; reference: solutions/leak_predict.db.
+# ----------------------------------------------------------------------------
+
+# Raw (ungated) tree location guess. UNRELIABLE by construction (fingerprints
+# one-off drain events); shown for context only, NEVER alarmed. The gated
+# $(P)LeakML:Status is the operator-facing location, valid only when a leak is
+# actually detected.
+
+record(aSub, "$(P)LeakML:Predict") {
+    field(SNAM, "leakPredict")
+    field(INAM, "leakPredictInit")
+
+    field(INPA, "$(P)TT-102:ModelIn CP")
+    field(INPB, "$(P)TT-110:ModelIn CP")
+    field(INPC, "$(P)LI-103:ModelIn CP")
+    field(INPD, "$(P)P-101:ModelIn CP")
+
+    field(FTA,  "DOUBLE")
+    field(FTB,  "DOUBLE")
+    field(FTC,  "DOUBLE")
+    field(FTD,  "DOUBLE")
+
+    field(NOA,  "1")
+    field(NOB,  "1")
+    field(NOC,  "1")
+    field(NOD,  "1")
+
+    field(FTVA, "DOUBLE")
+    field(FTVB, "DOUBLE")
+    field(FTVF, "DOUBLE")
+	
+    field(NOVA, "1")
+    field(NOVB, "1")
+    field(NOVF, "1")
+
+    field(SCAN, "5 second")
+    field(FLNK, "$(P)LeakML:fanout_record")
+}
+
+record(fanout, "$(P)LeakML:fanout_record") {
+    field(SELM, "All")
+    field(LNK1, "$(P)LeakML:Confidence")
+    field(LNK2, "$(P)LeakML:Status")
+    field(LNK3, "$(P)LeakML:ClassIdx")
+}
+
+record(mbbi, "$(P)LeakML:Status") {
+	field(DESC, "Predicted leak location")
+	field(INP, "$(P)LeakML:Predict.VALF")
+	field(ZRVL, "0")  field(ZRST, "[0] No leak")             	# position 0 = healthy skid, no leak
+	field(ONVL, "1")  field(ONST, "[1] HBL LWU Return")      	# position 1 = leak at this drain point
+	field(TWVL, "2")  field(TWST, "[2] MBL Antenna Return")  	# position 2 = leak here
+	field(THVL, "3")  field(THST, "[3] MBL Antenna Supply")  	# position 3 = leak here
+	field(FRVL, "4")  field(FRST, "[4] Spk Antenna Return")  	# position 4 = leak here
+	field(FVVL, "5")  field(FVST, "[5] Spk Antenna Supply")  	# position 5 = leak here
+	field(SXVL, "6")  field(SXST, "[6] Spk LWU Return")      	# position 6 = leak here
+	field(SVVL, "7")  field(SVST, "[7] Spk LWU Supply")      	# position 7 = leak here
+	field(EIVL, "8")  field(EIST, "[8] Spk Window Return")   	# position 8 = leak here
+	field(NIVL, "9")  field(NIST, "[9] Spk Window Supply")   	# position 9 = leak here
+	field(VAL,  "0")                                     		# start on position 0 (No leak)
+	field(PINI, "YES")                                   		# apply that start value at startup
+}
+
+record(ai, "$(P)LeakML:Confidence") {
+    	field(INP, "$(P)LeakML:Predict.VALB")
+	field(DESC, "Model confidence")
+	#field(DTYP, "Soft Channel")
+	field(VAL, "0")
+}
+
+record(ai, "$(P)LeakML:ClassIdx") {
+	field(INP, "$(P)LeakML:Predict.VALF")
+	field(DESC, "Raw class index")
+	#field(DTYP, "Soft Channel")
+	field(VAL, "0")
+}
+
